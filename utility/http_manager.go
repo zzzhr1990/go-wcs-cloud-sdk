@@ -115,6 +115,7 @@ func (httpManager *HTTPManager) DoRetry(reqest *http.Request, respEntity interfa
 		if retry < 1 {
 			return err
 		}
+		time.Sleep(time.Duration(2) * time.Second)
 	}
 }
 
