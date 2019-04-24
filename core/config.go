@@ -12,14 +12,14 @@ type Config struct {
 }
 
 //NewConfig nc
-func NewConfig(useHTTP bool, uploadHost string, manageHost string) (config *Config) {
+func NewConfig(useHTTPS bool, uploadHost string, manageHost string) (config *Config) {
 	if 0 == len(uploadHost) {
 		uploadHost = "apitestuser.up0.v1.wcsapi.com"
 	}
 	if 0 == len(manageHost) {
 		manageHost = "apitestuser.mgr0.v1.wcsapi.com"
 	}
-	return &Config{useHTTP, uploadHost, manageHost}
+	return &Config{useHTTPS, uploadHost, manageHost}
 }
 
 //NewDefaultConfig nc
