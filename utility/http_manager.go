@@ -1,13 +1,12 @@
 package utility
 
 import (
-	"net/http"
-	"time"
-	"io/ioutil"
 	"encoding/json"
 	"errors"
 	log "github.com/sirupsen/logrus"
-
+	"io/ioutil"
+	"net/http"
+	"time"
 )
 
 // 比 C# SDK 的类少了一个 allowAutoRedirect 参数，这个可以在传入的 http.Client 上自己设置 CheckRedirect
@@ -69,7 +68,7 @@ func (httpManager *HTTPManager) GetClient() (client *http.Client) {
 }
 
 //Do foa
-func (httpManager *HTTPManager) Do(reqest *http.Request) ( *http.Response,  error) {
+func (httpManager *HTTPManager) Do(reqest *http.Request) (*http.Response, error) {
 	if _, ok := reqest.Header["User-Agent"]; !ok {
 		reqest.Header.Set("User-Agent", userAgent)
 	}
@@ -77,39 +76,39 @@ func (httpManager *HTTPManager) Do(reqest *http.Request) ( *http.Response,  erro
 }
 
 //DoRetry foa
-func (httpManager *HTTPManager) DoRetry(reqest *http.Request, respEntity interface{}, retry int) ( error) {
+func (httpManager *HTTPManager) DoRetry(reqest *http.Request, respEntity interface{}, retry int) error {
 	if _, ok := reqest.Header["User-Agent"]; !ok {
 		reqest.Header.Set("User-Agent", userAgent)
 	}
 	// return httpManager.GetClient().Do(reqest)
 	for {
 		resp, err := httpManager.GetClient().Do(reqest)
-		if err == nil{
-			// nil do next 
+		if err == nil {
+			// nil do next
 			defer resp.Body.Close()
 			responseBody, err := ioutil.ReadAll(resp.Body)
-			if err == nil{
+			if err == nil {
 				if resp.StatusCode == http.StatusOK {
 					err = json.Unmarshal(responseBody, respEntity)
-					if err == nil{
+					if err == nil {
 						return nil
-					} 
+					}
 					log.Errorf("Http Api request Unmarshal error %v", err)
-				}else{
+				} else {
 					log.Errorf("Response from API %v", string(responseBody))
 					err = errors.New("Req API err")
 				}
 				// resp ok, json
-				
-			}else{
+
+			} else {
 				log.Errorf("Request API failed,ER_FAILED_READ, %v", err)
 			}
 
-		}else{
+		} else {
 			log.Errorf("Request API failed, %v", err)
 		}
 		retry--
-		if retry < 1{
+		if retry < 1 {
 			return err
 		}
 	}
@@ -129,7 +128,7 @@ func (httpManager *HTTPManager) DoWithAuth(reqest *http.Request, auth *Auth) (re
 }
 
 //DoWithAuthRetry wif
-func (httpManager *HTTPManager) DoWithAuthRetry(reqest *http.Request, auth *Auth, resp interface{}, retry int) (error) {
+func (httpManager *HTTPManager) DoWithAuthRetry(reqest *http.Request, auth *Auth, resp interface{}, retry int) error {
 	if nil != auth {
 		token, err := auth.SignRequest(reqest)
 		if nil != err {
