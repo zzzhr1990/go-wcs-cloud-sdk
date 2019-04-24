@@ -83,6 +83,7 @@ func (httpManager *HTTPManager) DoRetry(reqest *http.Request, resp interface{}, 
 	}
 	// return httpManager.GetClient().Do(reqest)
 	for {
+		log.Infof("Http Api request STTS %v", "STAER")
 		resp, err := httpManager.GetClient().Do(reqest)
 		if err == nil{
 			// nil do next 
