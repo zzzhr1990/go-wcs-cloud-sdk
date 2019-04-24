@@ -83,7 +83,6 @@ func (httpManager *HTTPManager) DoRetry(reqest *http.Request, resp interface{}, 
 	}
 	// return httpManager.GetClient().Do(reqest)
 	for {
-		log.Infof("Http Api request STTS %v", "STAER")
 		resp, err := httpManager.GetClient().Do(reqest)
 		if err == nil{
 			// nil do next 
@@ -91,7 +90,6 @@ func (httpManager *HTTPManager) DoRetry(reqest *http.Request, resp interface{}, 
 			responseBody, err := ioutil.ReadAll(resp.Body)
 			if err == nil{
 				if resp.StatusCode == http.StatusOK {
-					log.Infof("Http Api request OKKKKKKKK %v", string(responseBody))
 					err = json.Unmarshal(responseBody, resp)
 					if err == nil{
 						return nil

@@ -3,6 +3,8 @@ package bucket
 import (
 	"errors"
 	"github.com/zzzhr1990/go-wcs-cloud-sdk/utility"
+	log "github.com/sirupsen/logrus"
+
 )
 
 //Stat star
@@ -23,11 +25,12 @@ func (manager *Manager) Stat(bucket string, key string) ( *StatResult,  error) {
 	if nil != err {
 		return nil,err
 	}
-	res :=&StatResult{}
+	res := &StatResult{}
 	err = manager.httpManager.DoWithAuthRetry(request, manager.auth, res, 10)
 	if err != nil{
 		return nil, err
 	}
+	log.Infof("Auth is nil!!! %v", res)
 	return res, nil
 }
 
