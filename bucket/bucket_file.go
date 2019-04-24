@@ -55,3 +55,25 @@ func (manager *Manager) Copy(src string, dst string) (*core.CommonResponse, erro
 	}
 	return respEntity, nil
 }
+
+//Delete 删除文件（delete）
+// https://wcs.chinanetcenter.com/document/API/ResourceManage/delete
+func (manager *Manager) Delete(bucket string, key string) (*core.CommonResponse, error) {
+	if 0 == len(bucket) {
+		return nil, errors.New("bucket is empty")
+	}
+	if 0 == len(key) {
+		return nil, errors.New("key is empty")
+	}
+	url := manager.config.GetManageURLPrefix() + "/delete/" + utility.URLSafeEncodePair(bucket, key)
+	request, err := utility.CreatePostRequest(url)
+	if nil != err {
+		return nil, err
+	}
+	respEntity := &core.CommonResponse{}
+	err = manager.httpManager.DoWithAuthRetry(request, manager.auth, respEntity, 10)
+	if err != nil {
+		return nil, err
+	}
+	return respEntity, nil
+}
