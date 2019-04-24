@@ -3,7 +3,6 @@ package bucket
 import (
 	"errors"
 	"github.com/zzzhr1990/go-wcs-cloud-sdk/utility"
-	log "github.com/sirupsen/logrus"
 
 )
 
@@ -30,7 +29,6 @@ func (manager *Manager) Stat(bucket string, key string) ( *StatResult,  error) {
 	if err != nil{
 		return nil, err
 	}
-	log.Infof("Auth is nil!!! %v", res)
 	return res, nil
 }
 

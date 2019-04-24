@@ -77,7 +77,7 @@ func (httpManager *HTTPManager) Do(reqest *http.Request) (response *http.Respons
 }
 
 //DoRetry foa
-func (httpManager *HTTPManager) DoRetry(reqest *http.Request, resp interface{}, retry int) (err error) {
+func (httpManager *HTTPManager) DoRetry(reqest *http.Request, respEntity interface{}, retry int) (err error) {
 	if _, ok := reqest.Header["User-Agent"]; !ok {
 		reqest.Header.Set("User-Agent", userAgent)
 	}
@@ -90,9 +90,7 @@ func (httpManager *HTTPManager) DoRetry(reqest *http.Request, resp interface{}, 
 			responseBody, err := ioutil.ReadAll(resp.Body)
 			if err == nil{
 				if resp.StatusCode == http.StatusOK {
-					err = json.Unmarshal(responseBody, resp)
-					log.Infof("DDDDDDDDDD -%c", responseBody)
-					log.Infof("DDDDDDDDDD -%v", resp)
+					err = json.Unmarshal(responseBody, respEntity)
 					if err == nil{
 						return nil
 					} 
