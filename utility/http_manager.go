@@ -91,6 +91,8 @@ func (httpManager *HTTPManager) DoRetry(reqest *http.Request, resp interface{}, 
 			if err == nil{
 				if resp.StatusCode == http.StatusOK {
 					err = json.Unmarshal(responseBody, resp)
+					log.Infof("DDDDDDDDDD -%c", responseBody)
+					log.Infof("DDDDDDDDDD -%v", resp)
 					if err == nil{
 						return nil
 					} 

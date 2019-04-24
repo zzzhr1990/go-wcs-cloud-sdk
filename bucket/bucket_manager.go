@@ -13,6 +13,7 @@ type Manager struct {
 	httpManager *utility.HTTPManager
 }
 
+//NewBucketManager bb
 func NewBucketManager(auth *utility.Auth,config  *core.Config) (bm *Manager) {
 	if nil == auth {
 		log.Errorln("Auth is nil!!!")
