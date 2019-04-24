@@ -69,7 +69,7 @@ func (httpManager *HTTPManager) GetClient() (client *http.Client) {
 }
 
 //Do foa
-func (httpManager *HTTPManager) Do(reqest *http.Request) (response *http.Response, err error) {
+func (httpManager *HTTPManager) Do(reqest *http.Request) ( *http.Response,  error) {
 	if _, ok := reqest.Header["User-Agent"]; !ok {
 		reqest.Header.Set("User-Agent", userAgent)
 	}
@@ -77,7 +77,7 @@ func (httpManager *HTTPManager) Do(reqest *http.Request) (response *http.Respons
 }
 
 //DoRetry foa
-func (httpManager *HTTPManager) DoRetry(reqest *http.Request, respEntity interface{}, retry int) (err error) {
+func (httpManager *HTTPManager) DoRetry(reqest *http.Request, respEntity interface{}, retry int) ( error) {
 	if _, ok := reqest.Header["User-Agent"]; !ok {
 		reqest.Header.Set("User-Agent", userAgent)
 	}

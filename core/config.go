@@ -12,7 +12,7 @@ type Config struct {
 }
 
 //NewConfig nc
-func NewConfig(useHTTPS bool, uploadHost string, manageHost string) (config *Config) {
+func NewConfig(useHTTPS bool, uploadHost string, manageHost string) ( *Config) {
 	if 0 == len(uploadHost) {
 		uploadHost = "apitestuser.up0.v1.wcsapi.com"
 	}
@@ -23,28 +23,27 @@ func NewConfig(useHTTPS bool, uploadHost string, manageHost string) (config *Con
 }
 
 //NewDefaultConfig nc
-func NewDefaultConfig() (config *Config) {
+func NewDefaultConfig() ( *Config) {
 	return NewConfig(false, "", "")
 }
 
 //GetManageURLPrefix GMP
-func (config *Config) GetManageURLPrefix() (urlPrefix string) {
+func (config *Config) GetManageURLPrefix() ( string) {
 	if config.UseHTTPS {
-		urlPrefix = "https://" + config.ManageHost
-	} else {
-		urlPrefix = "http://" + config.ManageHost
-	}
-	return
+		return "https://" + config.ManageHost
+	} 
+		return "http://" + config.ManageHost
+	
 }
 
 //GetUploadURLPrefix GLP
-func (config *Config) GetUploadURLPrefix() (urlPrefix string) {
+func (config *Config) GetUploadURLPrefix() ( string) {
 	if config.UseHTTPS {
-		urlPrefix = "https://" + config.UploadHost
-	} else {
-		urlPrefix = "http://" + config.UploadHost
+		return "https://" + config.UploadHost
 	}
-	return
+	return	 "http://" + config.UploadHost
+	
+	
 }
 
 const (

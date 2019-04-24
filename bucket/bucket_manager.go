@@ -14,7 +14,7 @@ type Manager struct {
 }
 
 //NewBucketManager bb
-func NewBucketManager(auth *utility.Auth,config  *core.Config) (bm *Manager) {
+func NewBucketManager(auth *utility.Auth,config  *core.Config) ( *Manager) {
 	if nil == auth {
 		log.Errorln("Auth is nil!!!")
 		return &Manager{auth, config, utility.NewHTTPManager()}
