@@ -32,7 +32,7 @@ func (manager *Manager) Stat(bucket string, key string) (*StatResult, error) {
 	return res, nil
 }
 
-//Copy (copy)
+// Copy (copy)
 // https://wcs.chinanetcenter.com/document/API/ResourceManage/copy
 func (manager *Manager) Copy(src string, dst string) (*core.CommonResponse, error) {
 	if 0 == len(src) {
@@ -56,7 +56,7 @@ func (manager *Manager) Copy(src string, dst string) (*core.CommonResponse, erro
 	return respEntity, nil
 }
 
-//Delete 删除文件（delete）
+// Delete 删除文件（delete）
 // https://wcs.chinanetcenter.com/document/API/ResourceManage/delete
 func (manager *Manager) Delete(bucket string, key string) (*core.CommonResponse, error) {
 	if 0 == len(bucket) {
