@@ -8,4 +8,7 @@ import (
 var (
 	// ErrFileExists when file exist
 	ErrFileExists = errors.New("file already exists")
+
+	// ErrFileNotFound file not exists
+	ErrFileNotFound = errors.New("file not exists")
 )

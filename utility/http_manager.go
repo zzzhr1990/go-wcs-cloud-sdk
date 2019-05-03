@@ -100,6 +100,10 @@ func (httpManager *HTTPManager) DoRetry(reqest *http.Request, respEntity interfa
 					if resp.StatusCode == 406 {
 						log.Warnf("File exists..%v", string(responseBody))
 						return wcserror.ErrFileExists
+					} // ErrFileNotFound
+					if resp.StatusCode == 404 {
+						log.Warnf("file not found..%v", reqest.RequestURI)
+						return wcserror.ErrFileNotFound
 					}
 					log.Errorf("Response from API %v", string(responseBody))
 					err = errors.New("Req API err")
