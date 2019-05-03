@@ -3,10 +3,12 @@ package utility
 import (
 	"encoding/json"
 	"errors"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/zzzhr1990/go-wcs-cloud-sdk/wcserror"
 )
 
 // 比 C# SDK 的类少了一个 allowAutoRedirect 参数，这个可以在传入的 http.Client 上自己设置 CheckRedirect
@@ -97,7 +99,7 @@ func (httpManager *HTTPManager) DoRetry(reqest *http.Request, respEntity interfa
 				} else {
 					if resp.StatusCode == 406 {
 						log.Warnf("File exists..%v", string(responseBody))
-						return nil
+						return wcserror.ErrFileExists
 					}
 					log.Errorf("Response from API %v", string(responseBody))
 					err = errors.New("Req API err")
