@@ -150,10 +150,18 @@ func (httpManager *HTTPManager) DoWithAuthRetry(reqest *http.Request, auth *Auth
 	return httpManager.DoRetry(reqest, resp, retry)
 }
 
-//DoWithToken dej
+//DoWithToken * RAW!
 func (httpManager *HTTPManager) DoWithToken(reqest *http.Request, token string) (response *http.Response, err error) {
 	if len(token) > 0 {
 		reqest.Header.Set("Authorization", token)
 	}
 	return httpManager.Do(reqest)
+}
+
+// DoWithTokenAndRetry do Http Request With Token
+func (httpManager *HTTPManager) DoWithTokenAndRetry(reqest *http.Request, token string, resp interface{}, retry int) (err error) {
+	if len(token) > 0 {
+		reqest.Header.Set("Authorization", token)
+	}
+	return httpManager.DoRetry(reqest, resp, retry)
 }
