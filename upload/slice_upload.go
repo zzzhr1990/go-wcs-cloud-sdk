@@ -1,12 +1,9 @@
 package upload
 
 import (
-	"bytes"
 	"errors"
-	"net/http"
 	"os"
 	"strconv"
-	"strings"
 	"sync/atomic"
 
 	log "github.com/sirupsen/logrus"
@@ -69,15 +66,16 @@ func (up *SliceUpload) MakeBlock(blockSize int64, blockOrder int64, chunk []byte
 	}
 
 	url := up.uploadPrefix + "/mkblk/" + strconv.FormatInt(blockSize, 10) + "/" + strconv.FormatInt(blockOrder, 10)
-	request, err := http.NewRequest("POST", url, bytes.NewReader(chunk))
+	request, err := utility.CreateCommonRequest("POST", url)
 	if nil != err {
 		return nil, err
 	}
+	request.AddData(chunk)
 
 	utility.AddMime(request, "application/octet-stream")
-	request.Header.Set("UploadBatch", up.uploadBatch)
+	request.AddHeader("UploadBatch", up.uploadBatch)
 	if len(key) > 0 {
-		request.Header.Set("Key", utility.URLSafeEncodeString(key))
+		request.AddHeader("Key", utility.URLSafeEncodeString(key))
 	}
 
 	result := &MakeBlockBputResult{}
@@ -97,16 +95,16 @@ func (up *SliceUpload) Bput(context string, offset int64, chunk []byte, uploadTo
 		return nil, errors.New("upload_token is empty")
 	}
 
-	request, err := http.NewRequest("POST", up.uploadPrefix+"/bput/"+context+"/"+strconv.FormatInt(offset, 10),
-		bytes.NewReader(chunk))
+	request, err := utility.CreateCommonRequest("POST", up.uploadPrefix+"/bput/"+context+"/"+strconv.FormatInt(offset, 10))
 	if nil != err {
 		return nil, err
 	}
-
+	// s
+	request.AddData(chunk)
 	utility.AddMime(request, "application/octet-stream")
-	request.Header.Set("UploadBatch", up.uploadBatch)
+	request.AddHeader("UploadBatch", up.uploadBatch)
 	if len(key) > 0 {
-		request.Header.Set("Key", utility.URLSafeEncodeString(key))
+		request.AddHeader("Key", utility.URLSafeEncodeString(key))
 	}
 	result := &MakeBlockBputResult{}
 	err = up.httpManager.DoWithTokenAndRetry(request, uploadToken, result, 10)
@@ -143,15 +141,16 @@ func (up *SliceUpload) MakeFile(size int64, key string, contexts []string, uploa
 	for _, c := range contexts {
 		ctx += "," + c
 	}
-	request, err := http.NewRequest("POST", url, strings.NewReader(ctx[1:]))
+	request, err := utility.CreateCommonRequest("POST", url)
 	if nil != err {
 		return nil, err
 	}
+	request.AddStringBody(ctx[1:])
 
 	utility.AddMime(request, "text/plain;charset=UTF-8")
-	request.Header.Set("UploadBatch", up.uploadBatch)
+	request.AddHeader("UploadBatch", up.uploadBatch)
 	if len(key) > 0 {
-		request.Header.Set("Key", utility.URLSafeEncodeString(key))
+		request.AddHeader("Key", utility.URLSafeEncodeString(key))
 	}
 	/*
 		if nil != put_extra {

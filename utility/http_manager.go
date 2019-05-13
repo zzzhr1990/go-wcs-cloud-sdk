@@ -8,6 +8,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	// "github.com/zzzhr1990/go-wcs-cloud-sdk/utility"
 	"github.com/zzzhr1990/go-wcs-cloud-sdk/wcserror"
 )
 
@@ -29,23 +30,22 @@ func SetUserAgent(ua string) {
 }
 
 //CreateGetRequest cgr
-func CreateGetRequest(url string) (request *http.Request, err error) {
-	request, err = http.NewRequest("GET", url, nil)
+func CreateGetRequest(url string) (request *CommonRequest, err error) {
+	request, err = CreateCommonRequest("GET", url)
 	return
 }
 
 //CreatePostRequest cpr
-func CreatePostRequest(url string) (request *http.Request, err error) {
-	request, err = http.NewRequest("POST", url, nil)
+func CreatePostRequest(url string) (request *CommonRequest, err error) {
+	request, err = CreateCommonRequest("POST", url)
 	return
 }
 
 //AddMime am
-func AddMime(reqest *http.Request, mime string) {
+func AddMime(reqest *CommonRequest, mime string) {
 	if len(mime) > 0 {
-		reqest.Header.Set("Content-Type", mime)
+		reqest.AddHeader("Content-Type", mime)
 	}
-	return
 }
 
 //NewHTTPManager nhm
@@ -70,21 +70,25 @@ func (httpManager *HTTPManager) GetClient() (client *http.Client) {
 }
 
 //Do foa
-func (httpManager *HTTPManager) Do(reqest *http.Request) (*http.Response, error) {
-	if _, ok := reqest.Header["User-Agent"]; !ok {
-		reqest.Header.Set("User-Agent", userAgent)
+func (httpManager *HTTPManager) Do(request *CommonRequest) (*http.Response, error) {
+	req, err := request.CreateRequest()
+	if err != nil {
+		log.Errorf("cannot create request")
+		return nil, err
 	}
-	return httpManager.GetClient().Do(reqest)
+	return httpManager.GetClient().Do(req)
 }
 
 //DoRetry foa
-func (httpManager *HTTPManager) DoRetry(reqest *http.Request, respEntity interface{}, retry int) error {
-	if _, ok := reqest.Header["User-Agent"]; !ok {
-		reqest.Header.Set("User-Agent", userAgent)
-	}
+func (httpManager *HTTPManager) DoRetry(request *CommonRequest, respEntity interface{}, retry int) error {
 	// return httpManager.GetClient().Do(reqest)
 	for {
-		resp, err := httpManager.GetClient().Do(reqest)
+		req, err := request.CreateRequest()
+		if err != nil {
+			log.Errorf("cannot create request")
+			return err
+		}
+		resp, err := httpManager.GetClient().Do(req)
 		if err == nil {
 			// nil do next
 			defer resp.Body.Close()
@@ -102,7 +106,7 @@ func (httpManager *HTTPManager) DoRetry(reqest *http.Request, respEntity interfa
 						return wcserror.ErrFileExists
 					} // ErrFileNotFound
 					if resp.StatusCode == 404 {
-						log.Warnf("file not found..%v", reqest.RequestURI)
+						log.Warnf("file not found..%v", req.RequestURI)
 						return wcserror.ErrFileNotFound
 					}
 					log.Errorf("Response from API %v", string(responseBody))
@@ -121,47 +125,39 @@ func (httpManager *HTTPManager) DoRetry(reqest *http.Request, respEntity interfa
 		if retry < 1 {
 			return err
 		}
+		//
 		time.Sleep(time.Duration(2) * time.Second)
 	}
 }
 
 //DoWithAuth wif
-func (httpManager *HTTPManager) DoWithAuth(reqest *http.Request, auth *Auth) (response *http.Response, err error) {
+func (httpManager *HTTPManager) DoWithAuth(request *CommonRequest, auth *Auth) (response *http.Response, err error) {
 	if nil != auth {
-		var token string
-		token, err = auth.SignRequest(reqest)
-		if nil != err {
-			return
-		}
-		reqest.Header.Set("Authorization", token)
+		request.AddAuth(auth)
 	}
-	return httpManager.Do(reqest)
+	return httpManager.Do(request)
 }
 
 //DoWithAuthRetry wif
-func (httpManager *HTTPManager) DoWithAuthRetry(reqest *http.Request, auth *Auth, resp interface{}, retry int) error {
+func (httpManager *HTTPManager) DoWithAuthRetry(reqest *CommonRequest, auth *Auth, resp interface{}, retry int) error {
 	if nil != auth {
-		token, err := auth.SignRequest(reqest)
-		if nil != err {
-			return err
-		}
-		reqest.Header.Set("Authorization", token)
+		reqest.AddAuth(auth)
 	}
 	return httpManager.DoRetry(reqest, resp, retry)
 }
 
 //DoWithToken * RAW!
-func (httpManager *HTTPManager) DoWithToken(reqest *http.Request, token string) (response *http.Response, err error) {
+func (httpManager *HTTPManager) DoWithToken(request *CommonRequest, token string) (response *http.Response, err error) {
 	if len(token) > 0 {
-		reqest.Header.Set("Authorization", token)
+		request.AddToken(token)
 	}
-	return httpManager.Do(reqest)
+	return httpManager.Do(request)
 }
 
 // DoWithTokenAndRetry do Http Request With Token
-func (httpManager *HTTPManager) DoWithTokenAndRetry(reqest *http.Request, token string, resp interface{}, retry int) (err error) {
+func (httpManager *HTTPManager) DoWithTokenAndRetry(request *CommonRequest, token string, resp interface{}, retry int) (err error) {
 	if len(token) > 0 {
-		reqest.Header.Set("Authorization", token)
+		request.AddToken(token)
 	}
-	return httpManager.DoRetry(reqest, resp, retry)
+	return httpManager.DoRetry(request, resp, retry)
 }
