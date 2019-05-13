@@ -95,7 +95,7 @@ func (httpManager *HTTPManager) DoRetry(reqest *http.Request, respEntity interfa
 					if err == nil {
 						return nil
 					}
-					log.Errorf("Http Api request Unmarshal error %v", err)
+					log.Errorf("Http Api request Unmarshal error %v, body: %v", err, string(responseBody))
 				} else {
 					if resp.StatusCode == 406 {
 						log.Warnf("File exists..%v", string(responseBody))
