@@ -222,7 +222,7 @@ func (up *SliceUpload) UploadFile(localFilename string, uploadToken string, key 
 		return nil, err
 	}
 
-	if len(makeBlockResponse.Crc32) == 0 {
+	if makeBlockResponse.Crc32 == 0 {
 		log.Errorf("cannot make block, result is empty")
 		return nil, errors.New("cannot make block, result is empty")
 	}
