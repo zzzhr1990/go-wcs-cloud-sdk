@@ -60,7 +60,7 @@ func NewDefaultHTTPManager() (httpManager *HTTPManager) {
 
 //GetClient gpc
 func (httpManager *HTTPManager) GetClient() (client *http.Client) {
-	timeout := time.Duration(30 * time.Second)
+	timeout := time.Duration(60 * time.Second)
 
 	return &http.Client{
 		Timeout: timeout,
