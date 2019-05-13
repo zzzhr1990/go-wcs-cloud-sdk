@@ -15,7 +15,7 @@ type MakeBlockBputResult struct {
 	Message  string `json:"message,omitempty"`
 	Ctx      string `json:"ctx,omitempty"`
 	Checksum string `json:"checksum,omitempty"`
-	Crc32    string `json:"crc32,omitempty"`
+	Crc32    int64  `json:"crc32,omitempty"`
 	Offset   string `json:"offset,omitempty"`
 }
 
