@@ -69,6 +69,19 @@ func (httpManager *HTTPManager) GetClient() (client *http.Client) {
 
 }
 
+//GetTimeOutClient gpc
+func (httpManager *HTTPManager) GetTimeOutClient(time time.Duration) (client *http.Client) {
+	// timeout := time.Duration(60 * time.Second)
+	if time <= 0 {
+		return httpManager.GetClient()
+	}
+	return &http.Client{
+		Timeout: time,
+		//Transport: transport,
+	}
+
+}
+
 //Do foa
 func (httpManager *HTTPManager) Do(request *CommonRequest) (*http.Response, error) {
 	req, err := request.CreateRequest()
@@ -76,19 +89,21 @@ func (httpManager *HTTPManager) Do(request *CommonRequest) (*http.Response, erro
 		log.Errorf("cannot create request")
 		return nil, err
 	}
-	return httpManager.GetClient().Do(req)
+	if request.GetTimeout() > 0 {
+		return httpManager.GetTimeOutClient(request.GetTimeout()).Do(req)
+	}
+	return httpManager.GetTimeOutClient(request.GetTimeout()).Do(req)
 }
 
 //DoRetry foa
 func (httpManager *HTTPManager) DoRetry(request *CommonRequest, respEntity interface{}, retry int) error {
-	// return httpManager.GetClient().Do(reqest)
 	for {
 		req, err := request.CreateRequest()
 		if err != nil {
 			log.Errorf("cannot create request")
 			return err
 		}
-		resp, err := httpManager.GetClient().Do(req)
+		resp, err := httpManager.GetTimeOutClient(request.GetTimeout()).Do(req)
 		if err == nil {
 			// nil do next
 			defer resp.Body.Close()
@@ -123,10 +138,12 @@ func (httpManager *HTTPManager) DoRetry(request *CommonRequest, respEntity inter
 		}
 		retry--
 		if retry < 1 {
+			log.Info("request api give up")
 			return err
 		}
 		//
 		time.Sleep(time.Duration(2) * time.Second)
+		log.Infof("retrying api %v, try time left: %v", request.uri, retry)
 	}
 }
 

@@ -2,10 +2,10 @@ package utility
 
 import (
 	"bytes"
-	"net/http"
-
 	"io"
+	"net/http"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	// "github.com/zzzhr1990/go-wcs-cloud-sdk/utility"
@@ -20,6 +20,7 @@ type CommonRequest struct {
 	auth       *Auth
 	data       []byte
 	stringBody string
+	timeOut    time.Duration
 }
 
 // CreateCommonRequest cra
@@ -96,4 +97,14 @@ func (req *CommonRequest) AddData(data []byte) {
 // AddStringBody data
 func (req *CommonRequest) AddStringBody(data string) {
 	req.stringBody = data
+}
+
+// SetTimeout data
+func (req *CommonRequest) SetTimeout(data time.Duration) {
+	req.timeOut = data
+}
+
+// GetTimeout get request timeout
+func (req *CommonRequest) GetTimeout() time.Duration {
+	return req.timeOut
 }
