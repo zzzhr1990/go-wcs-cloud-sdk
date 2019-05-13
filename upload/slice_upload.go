@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync/atomic"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/zzzhr1990/go-wcs-cloud-sdk/utility"
@@ -21,6 +22,7 @@ type SliceUpload struct {
 	blockBits    uint64
 	blockSize    int64
 	blockMask    int64
+	stopFlag     *int32
 }
 
 const (
@@ -29,10 +31,11 @@ const (
 )
 
 // CreateNewSliceUpload new module
-func CreateNewSliceUpload(uploadPrefix string) *SliceUpload {
+func CreateNewSliceUpload(uploadPrefix string, stopFlag *int32) *SliceUpload {
 	su := &SliceUpload{
 		httpManager:  utility.NewHTTPManager(),
 		uploadPrefix: uploadPrefix,
+		stopFlag:     stopFlag,
 	}
 	su.resizeFileCount(1)
 	return su
@@ -215,7 +218,9 @@ func (up *SliceUpload) UploadFile(localFilename string, uploadToken string, key 
 		err = errors.New("Read size < request size")
 		return nil, err
 	}
-
+	if atomic.LoadInt32(up.stopFlag) > 0 {
+		return nil, errors.New("upload terminated")
+	}
 	makeBlockResponse, err := up.MakeBlock(innerblockSize, 0, firstChunk, uploadToken, key)
 	if nil != err {
 		log.Errorf("cannot make block %v", err)
@@ -263,6 +268,9 @@ func (up *SliceUpload) UploadFile(localFilename string, uploadToken string, key 
 				innerChunkSize = leftSize
 			}
 			block := make([]byte, innerChunkSize)
+			if atomic.LoadInt32(up.stopFlag) > 0 {
+				return nil, errors.New("upload terminated")
+			}
 			n, err = f.Read(block)
 			if nil != err {
 				log.Errorf("cannot read block file %v: %v", localFilename, err)
@@ -275,13 +283,16 @@ func (up *SliceUpload) UploadFile(localFilename string, uploadToken string, key 
 			}
 			makeBlockResponse, err = up.MakeBlock(innerChunkSize, blockIndex, block, uploadToken, key)
 			if nil != err {
-				log.Errorf("cannot make block file %v [block:%v]: %v", localFilename, block, err)
+				log.Errorf("cannot make block file %v [block:%v]: %v", localFilename, blockIndex, err)
 				return nil, err
 			}
 			contexts[blockIndex] = makeBlockResponse.Ctx
 		}
 	}
 
+	if atomic.LoadInt32(up.stopFlag) > 0 {
+		return nil, errors.New("upload terminated")
+	}
 	response, err := up.MakeFile(fi.Size(), key, contexts, uploadToken)
 	if nil != err {
 		log.Errorf("cannot make block file %v: %v", localFilename, err)
