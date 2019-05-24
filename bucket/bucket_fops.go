@@ -10,7 +10,7 @@ import (
 )
 
 // Fops dp fops
-func (manager *Manager) Fops(query string) (*core.CommonResponse, error) {
+func (manager *Manager) Fops(query string) (*core.FopsResponse, error) {
 	if 0 == len(query) {
 		return nil, errors.New("query is empty")
 	}
@@ -22,7 +22,7 @@ func (manager *Manager) Fops(query string) (*core.CommonResponse, error) {
 	}
 	request.AddStringBody(query)
 	log.Infof("call fops %v", query)
-	respEntity := &core.CommonResponse{}
+	respEntity := &core.FopsResponse{}
 	err = manager.httpManager.DoWithAuthRetry(request, manager.auth, respEntity, 10)
 	if err != nil {
 		return nil, err
@@ -31,7 +31,7 @@ func (manager *Manager) Fops(query string) (*core.CommonResponse, error) {
 }
 
 // FopsMap dp fops
-func (manager *Manager) FopsMap(query map[string]string) (*core.CommonResponse, error) {
+func (manager *Manager) FopsMap(query map[string]string) (*core.FopsResponse, error) {
 	if query == nil || 0 == len(query) {
 		return nil, errors.New("query is empty")
 	}
