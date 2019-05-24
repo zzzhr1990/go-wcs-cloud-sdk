@@ -4,7 +4,6 @@ import (
 	"errors"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/zzzhr1990/go-wcs-cloud-sdk/core"
 	"github.com/zzzhr1990/go-wcs-cloud-sdk/utility"
 )
@@ -21,7 +20,7 @@ func (manager *Manager) Fops(query string) (*core.FopsResponse, error) {
 		return nil, err
 	}
 	request.AddStringBody(query)
-	log.Infof("call fops %v", query)
+	// log.Infof("call fops %v", query)
 	respEntity := &core.FopsResponse{}
 	err = manager.httpManager.DoWithAuthRetry(request, manager.auth, respEntity, 10)
 	if err != nil {
