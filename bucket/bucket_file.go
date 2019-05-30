@@ -90,6 +90,11 @@ func (manager *Manager) MoveWithRetry(src string, dst string, retry int) (*core.
 // Delete 删除文件（delete）
 // https://wcs.chinanetcenter.com/document/API/ResourceManage/delete
 func (manager *Manager) Delete(bucket string, key string) (*core.CommonResponse, error) {
+	return manager.DeleteWithRetry(bucket, key, 10)
+}
+
+// DeleteWithRetry retry
+func (manager *Manager) DeleteWithRetry(bucket string, key string, retry int) (*core.CommonResponse, error) {
 	if 0 == len(bucket) {
 		return nil, errors.New("bucket is empty")
 	}
@@ -102,7 +107,7 @@ func (manager *Manager) Delete(bucket string, key string) (*core.CommonResponse,
 		return nil, err
 	}
 	respEntity := &core.CommonResponse{}
-	err = manager.httpManager.DoWithAuthRetry(request, manager.auth, respEntity, 10)
+	err = manager.httpManager.DoWithAuthRetry(request, manager.auth, respEntity, retry)
 	if err != nil {
 		return nil, err
 	}
