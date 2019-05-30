@@ -2,6 +2,7 @@ package bucket
 
 import (
 	"errors"
+
 	"github.com/zzzhr1990/go-wcs-cloud-sdk/core"
 	"github.com/zzzhr1990/go-wcs-cloud-sdk/utility"
 )
@@ -50,6 +51,36 @@ func (manager *Manager) Copy(src string, dst string) (*core.CommonResponse, erro
 	}
 	respEntity := &core.CommonResponse{}
 	err = manager.httpManager.DoWithAuthRetry(request, manager.auth, respEntity, 10)
+	if err != nil {
+		return nil, err
+	}
+	return respEntity, nil
+}
+
+// Move (copy)
+// https://wcs.chinanetcenter.com/document/API/ResourceManage/copy
+func (manager *Manager) Move(src string, dst string) (*core.CommonResponse, error) {
+	return manager.MoveWithRetry(src, dst, 10)
+}
+
+// MoveWithRetry (copy)
+// https://wcs.chinanetcenter.com/document/API/ResourceManage/copy
+func (manager *Manager) MoveWithRetry(src string, dst string, retry int) (*core.CommonResponse, error) {
+	if 0 == len(src) {
+		return nil, errors.New("src is empty")
+	}
+	if 0 == len(dst) {
+		return nil, errors.New("dst is empty")
+	}
+
+	url := manager.config.GetManageURLPrefix() + "/move/" + utility.URLSafeEncodeString(src) +
+		"/" + utility.URLSafeEncodeString(dst)
+	request, err := utility.CreatePostRequest(url)
+	if nil != err {
+		return nil, err
+	}
+	respEntity := &core.CommonResponse{}
+	err = manager.httpManager.DoWithAuthRetry(request, manager.auth, respEntity, retry)
 	if err != nil {
 		return nil, err
 	}
