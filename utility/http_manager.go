@@ -139,7 +139,7 @@ func (httpManager *HTTPManager) DoRetry(request *CommonRequest, respEntity inter
 		retry--
 		if retry < 1 {
 			log.Info("request api give up")
-			return err
+			return errors.New("give up error")
 		}
 		//
 		time.Sleep(time.Duration(2) * time.Second)
