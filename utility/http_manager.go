@@ -122,7 +122,7 @@ func (httpManager *HTTPManager) DoRetry(request *CommonRequest, respEntity inter
 						return wcserror.ErrFileExists
 					} // ErrFileNotFound
 					if resp.StatusCode == 404 {
-						log.Warnf("file not found..%v", req.RequestURI)
+						// log.Warnf("file not found..%v", req.RequestURI)
 						return wcserror.ErrFileNotFound
 					}
 					log.Errorf("Response from API %v", string(responseBody))
