@@ -2,9 +2,13 @@ package bucket
 
 import (
 	"errors"
+	"strconv"
+
+	"fmt"
 
 	"github.com/zzzhr1990/go-wcs-cloud-sdk/core"
 	"github.com/zzzhr1990/go-wcs-cloud-sdk/utility"
+	"github.com/zzzhr1990/go-wcs-cloud-sdk/wcserror"
 )
 
 //Stat star
@@ -21,6 +25,7 @@ func (manager *Manager) Stat(bucket string, key string) (*StatResult, error) {
 	}
 
 	url := manager.config.GetManageURLPrefix() + "/stat/" + utility.URLSafeEncodePair(bucket, key)
+
 	request, err := utility.CreateGetRequest(url)
 	if nil != err {
 		return nil, err
@@ -85,6 +90,63 @@ func (manager *Manager) MoveWithRetry(src string, dst string, retry int) (*core.
 		return nil, err
 	}
 	return respEntity, nil
+}
+
+// List 删除文件（delete）
+// https://wcs.chinanetcenter.com/document/API/ResourceManage/delete
+func (manager *Manager) List(bucket string, limit int64, prefix string, marker string, retry int) (*core.ListResponse, error) {
+	// return manager.DeleteWithRetry(bucket, key, 10)
+	url := manager.config.GetManageURLPrefix() + "/list?bucket=" +
+		bucket +
+		"&limit=" +
+		strconv.FormatInt(limit, 10) +
+		"&prefix=" +
+		utility.URLSafeEncodeString(prefix) +
+		"&marker=" + marker
+	// &mode=<mode>
+	request, err := utility.CreateGetRequest(url)
+	// fmt.Println(url)
+	if nil != err {
+		return nil, err
+	}
+	respEntity := &core.ListResponse{}
+	err = manager.httpManager.DoWithAuthRetry(request, manager.auth, respEntity, retry)
+	if err != nil {
+		return nil, err
+	}
+	return respEntity, nil
+}
+
+// DeleteAll 删除文件（delete）
+// https://wcs.chinanetcenter.com/document/API/ResourceManage/delete
+func (manager *Manager) DeleteAll(bucket string, prefix string) (bool, error) {
+	// return manager.DeleteWithRetry(bucket, key, 10)
+
+	marker := ""
+	for {
+		lr, err := manager.List(bucket, 1000, prefix, marker, 10)
+		if err != nil {
+			return false, err
+		}
+		if len(lr.Items) < 1 {
+			return true, nil
+		}
+		for _, itm := range lr.Items {
+			key := itm.Key
+			// bucket := itm.
+			go func(k string, v string) {
+				_, err = manager.Delete(bucket, key)
+				if err != nil && err != wcserror.ErrFileNotFound {
+					fmt.Println(err)
+				}
+			}(bucket, key)
+			// _, err = manager.Delete(bucket, key)
+			// if err != nil && err != wcserror.ErrFileNotFound {
+			// 	return false, err
+			//}
+		}
+		marker = lr.Marker
+	}
 }
 
 // Delete 删除文件（delete）

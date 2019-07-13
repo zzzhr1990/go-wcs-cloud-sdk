@@ -23,8 +23,10 @@ type SliceUpload struct {
 }
 
 const (
-	minBlockBits  = 22
-	maxBlockCount = 100
+	minBlockBits        = 22
+	maxBlockCount       = 2
+	maxBlockSize        = 64 * 1024 * 1024
+	maxBputSize   int64 = 8 * 1024 * 1024
 )
 
 // CreateNewSliceUpload new module
@@ -49,6 +51,15 @@ func (up *SliceUpload) resizeFileCount(fsize int64) {
 
 	count := up.blockCount(fsize)
 	for count > maxBlockCount {
+
+		btcs := up.blockBits + 1
+		var bt int64 = 1
+		btcsSize := bt << btcs
+		if btcsSize > maxBlockSize {
+			count = up.blockCount(fsize)
+			break
+		}
+
 		up.blockBits++
 		up.blockSize = 1 << up.blockBits
 		up.blockMask = 1<<up.blockBits - 1
@@ -237,25 +248,35 @@ func (up *SliceUpload) UploadFile(localFilename string, uploadToken string, key 
 
 	// 上传第 1 个 block 剩下的数据
 	if innerblockSize > firstChunkSize {
-		firstBlockLeftSize := innerblockSize - firstChunkSize
-		leftChunk := make([]byte, firstBlockLeftSize)
-		n, err = f.Read(leftChunk)
-		if nil != err {
-			log.Errorf("cannot read chunk %v: %v", localFilename, err)
-			return nil, err
-		}
-		if firstBlockLeftSize != int64(n) {
-			err = errors.New("Read size < request size")
-			log.Errorf("cannot stat file (size check failed) %v: %v", localFilename, err)
-			return nil, err
-		}
-		makeBlockResponse, err = up.Bput(contexts[0], firstChunkSize, leftChunk, uploadToken, key)
-		if nil != err {
-			log.Errorf("cannot make block file %v: %v", localFilename, err)
-			return nil, err
+
+		blockSizeLeft := innerblockSize - firstChunkSize
+		lastOffset := firstChunkSize
+		for blockSizeLeft > 0 {
+			bputSize := maxBputSize
+			if bputSize > blockSizeLeft {
+				bputSize = blockSizeLeft
+			}
+			leftChunk := make([]byte, bputSize)
+			n, err = f.Read(leftChunk)
+			if nil != err {
+				log.Errorf("cannot read chunk %v: %v", localFilename, err)
+				return nil, err
+			}
+			if bputSize != int64(n) {
+				err = errors.New("Read size < request size")
+				log.Errorf("cannot stat file (size check failed) %v: %v", localFilename, err)
+				return nil, err
+			}
+			makeBlockResponse, err = up.Bput(contexts[0], lastOffset, leftChunk, uploadToken, key)
+			if nil != err {
+				log.Errorf("cannot make block file %v: %v", localFilename, err)
+				return nil, err
+			}
+			contexts[0] = makeBlockResponse.Ctx
+			lastOffset = makeBlockResponse.Offset
+			blockSizeLeft -= bputSize
 		}
 
-		contexts[0] = makeBlockResponse.Ctx
 		// 上传后续 block，每次都是一整块上传
 		for blockIndex := int64(1); blockIndex < innerBlockCount; blockIndex++ {
 			pos := innerblockSize * blockIndex
@@ -266,26 +287,50 @@ func (up *SliceUpload) UploadFile(localFilename string, uploadToken string, key 
 			} else {
 				innerChunkSize = leftSize
 			}
-			block := make([]byte, innerChunkSize)
-			if atomic.LoadInt32(up.stopFlag) > 0 {
-				return nil, errors.New("upload terminated")
+
+			blockSizeLeft := innerChunkSize
+			var lastOffset int64
+			makeBlock := false
+			for blockSizeLeft > 0 {
+				if atomic.LoadInt32(up.stopFlag) > 0 {
+					return nil, errors.New("upload terminated")
+				}
+				bputSize := maxBputSize
+				if bputSize > blockSizeLeft {
+					bputSize = blockSizeLeft
+				}
+				leftChunk := make([]byte, bputSize)
+				n, err = f.Read(leftChunk)
+				if nil != err {
+					log.Errorf("cannot read chunk %v: %v", localFilename, err)
+					return nil, err
+				}
+				if bputSize != int64(n) {
+					err = errors.New("Read size < request size")
+					log.Errorf("cannot stat file (size check failed) %v: %v", localFilename, err)
+					return nil, err
+				}
+				if !makeBlock {
+					makeBlockResponse, err = up.MakeBlock(innerChunkSize, blockIndex, leftChunk, uploadToken, key)
+					if nil != err {
+						log.Errorf("cannot make block file %v [block:%v]: %v", localFilename, blockIndex, err)
+						return nil, err
+					}
+					contexts[blockIndex] = makeBlockResponse.Ctx
+					// log.Print(makeBlockResponse.Ctx)
+					makeBlock = true
+					lastOffset = makeBlockResponse.Offset
+				} else {
+					makeBlockResponse, err = up.Bput(contexts[blockIndex], lastOffset, leftChunk, uploadToken, key)
+					if nil != err {
+						log.Errorf("cannot make block file %v: %v", localFilename, err)
+						return nil, err
+					}
+					contexts[blockIndex] = makeBlockResponse.Ctx
+					lastOffset = makeBlockResponse.Offset
+				}
+				blockSizeLeft -= bputSize
 			}
-			n, err = f.Read(block)
-			if nil != err {
-				log.Errorf("cannot read block file %v: %v", localFilename, err)
-				return nil, err
-			}
-			if innerChunkSize != int64(n) {
-				err = errors.New("Read size < request size")
-				log.Errorf("cannot read chunk file %v: %v", localFilename, err)
-				return nil, err
-			}
-			makeBlockResponse, err = up.MakeBlock(innerChunkSize, blockIndex, block, uploadToken, key)
-			if nil != err {
-				log.Errorf("cannot make block file %v [block:%v]: %v", localFilename, blockIndex, err)
-				return nil, err
-			}
-			contexts[blockIndex] = makeBlockResponse.Ctx
 		}
 	}
 
