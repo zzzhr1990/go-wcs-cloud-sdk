@@ -130,15 +130,15 @@ func (up *SliceUpload) Bput(context string, offset int64, chunk []byte, uploadTo
 		request.AddHeader("Key", utility.URLSafeEncodeString(key))
 	}
 	result := &MakeBlockBputResult{}
-	startTime := time.Now().UnixNano()
+	// startTime := time.Now().UnixNano()
 	err = up.httpManager.DoWithTokenAndRetry(request, uploadToken, result, 10)
 	if err != nil {
 		return nil, err
 	}
-	timeCost := time.Now().UnixNano() - startTime
-	secCost := timeCost / int64(time.Millisecond) / 1000
-	speed := len(chunk) / 1024 / int(secCost)
-	log.Infof("bput %v kb/sec", speed)
+	//timeCost := time.Now().UnixNano() - startTime
+	//secCost := timeCost / int64(time.Millisecond) / 1000
+	//speed := len(chunk) / 1024 / int(secCost)
+	//log.Infof("bput %v kb/sec", speed)
 	return result, nil
 }
 
