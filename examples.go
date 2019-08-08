@@ -30,7 +30,7 @@ func main() {
 	}
 	ak := ""
 	sk := ""
-	file := "/"
+	file := "/Users/zzzhr/Desktop/91/link-interface-hyperlink-icon-2770-512x512.png"
 	policy := &entity.UploadPolicy{}
 	current := time.Now()
 	policy.Deadline = strconv.FormatInt((time.Now().UnixNano()/int64(time.Millisecond))+1000*60*60*6, 10)
@@ -53,6 +53,7 @@ func main() {
 	res, err := upl.UploadFile(file, token, "")
 	if err != nil {
 		log.Printf("error up, %v", err)
+		return
 	}
 	log.Printf("remote hash: %v", res.Hash)
 	// log.Println(res.Hash)
