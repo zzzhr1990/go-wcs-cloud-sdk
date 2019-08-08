@@ -349,7 +349,7 @@ func (up *SliceUpload) UploadFile(localFilename string, uploadToken string, key 
 		ql := len(blockInfoList)
 		if ql > 0 {
 			// log.Infof("QQQQ_LX %v", ql)
-			concurrent := 5
+			concurrent := 8
 			if ql < concurrent {
 				concurrent = ql
 			}
