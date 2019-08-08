@@ -21,9 +21,16 @@ import (
 )
 
 func main() {
+	if false {
+		s := utility.ComputeEtag([]byte{})
+		log.Print(s)
+		r, _ := utility.ComputeFileEtag("test.h")
+		log.Print(r)
+		return
+	}
 	ak := ""
 	sk := ""
-	file := "/Users/zzzhr/Desktop/91/glby.mpg"
+	file := "/"
 	policy := &entity.UploadPolicy{}
 	current := time.Now()
 	policy.Deadline = strconv.FormatInt((time.Now().UnixNano()/int64(time.Millisecond))+1000*60*60*6, 10)
@@ -63,7 +70,33 @@ func encodeSign(data []byte, sk string) (sign string) {
 	return base64.URLEncoding.EncodeToString(hexString)
 }
 
-func main2() {
+// https://other.qiecdn.com/oriStore/ltGeGqA87FyZ9yYFDV83cYcwaMju?op=imageView2&mode=2&height=256&format=jpg
+
+func main6() {
+	auth := utility.NewAuth("8758804f90558e3a9222174725ee5d36ab9c7208", "5dbd1a40a8334d285261d78562640f4667ff90a9")
+
+	mng := bucket.NewBucketManager(auth, core.NewConfig(false, "upl", "qietv.mgr33.v1.wcsapi.com"))
+	// we‘d test 　m
+	detectType := "porn"
+	flag := 0
+	add := "https://other.qiecdn.com/oriStore/ltGeGqA87FyZ9yYFDV83cYcwaMju?op=imageView2&mode=2&height=256&format=jpg"
+	response, err := mng.ImageDetect(add, "other-storage", detectType)
+	if err != nil {
+		log.Printf("cannot detect img %v: %v", add, err)
+		return
+	}
+
+	for _, det := range response.Results {
+		if det.PornDetect.Label == 0 {
+			flag = 1 | flag
+			log.Printf("porn detect...%v, rate: %v, need review: %v", add, det.PornDetect.Rate, det.PornDetect.Review)
+			break
+		}
+	}
+	log.Printf("detect: %v", flag)
+}
+
+func main5() {
 	auth := utility.NewAuth("", "")
 
 	mng := bucket.NewBucketManager(auth, core.NewConfig(false, "upl", ""))

@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 	"sync/atomic"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/zzzhr1990/go-wcs-cloud-sdk/utility"
@@ -83,11 +84,17 @@ func (up *SliceUpload) MakeBlock(blockSize int64, blockOrder int64, chunk []byte
 	}
 	request.AddData(chunk)
 
+	sec := len(chunk) / 1024 / 100
+	if sec < 90 {
+		sec = 90
+	}
 	utility.AddMime(request, "application/octet-stream")
 	request.AddHeader("UploadBatch", up.uploadBatch)
 	if len(key) > 0 {
 		request.AddHeader("Key", utility.URLSafeEncodeString(key))
 	}
+
+	request.SetTimeout(time.Duration(sec) * time.Second)
 
 	result := &MakeBlockBputResult{}
 	err = up.httpManager.DoWithTokenAndRetry(request, uploadToken, result, 10)
@@ -112,6 +119,11 @@ func (up *SliceUpload) Bput(context string, offset int64, chunk []byte, uploadTo
 	}
 	// s
 	request.AddData(chunk)
+	sec := len(chunk) / 1024 / 100
+	if sec < 90 {
+		sec = 90
+	}
+	request.SetTimeout(time.Duration(sec) * time.Second)
 	utility.AddMime(request, "application/octet-stream")
 	request.AddHeader("UploadBatch", up.uploadBatch)
 	if len(key) > 0 {
@@ -157,7 +169,7 @@ func (up *SliceUpload) MakeFile(size int64, key string, contexts []string, uploa
 		return nil, err
 	}
 	request.AddStringBody(ctx[1:])
-
+	request.SetTimeout(time.Duration(60) * time.Second)
 	utility.AddMime(request, "text/plain;charset=UTF-8")
 	request.AddHeader("UploadBatch", up.uploadBatch)
 	if len(key) > 0 {
@@ -288,49 +300,14 @@ func (up *SliceUpload) UploadFile(localFilename string, uploadToken string, key 
 				innerChunkSize = leftSize
 			}
 
-			blockSizeLeft := innerChunkSize
-			var lastOffset int64
-			makeBlock := false
-			for blockSizeLeft > 0 {
-				if atomic.LoadInt32(up.stopFlag) > 0 {
-					return nil, errors.New("upload terminated")
-				}
-				bputSize := maxBputSize
-				if bputSize > blockSizeLeft {
-					bputSize = blockSizeLeft
-				}
-				leftChunk := make([]byte, bputSize)
-				n, err = f.Read(leftChunk)
-				if nil != err {
-					log.Errorf("cannot read chunk %v: %v", localFilename, err)
-					return nil, err
-				}
-				if bputSize != int64(n) {
-					err = errors.New("Read size < request size")
-					log.Errorf("cannot stat file (size check failed) %v: %v", localFilename, err)
-					return nil, err
-				}
-				if !makeBlock {
-					makeBlockResponse, err = up.MakeBlock(innerChunkSize, blockIndex, leftChunk, uploadToken, key)
-					if nil != err {
-						log.Errorf("cannot make block file %v [block:%v]: %v", localFilename, blockIndex, err)
-						return nil, err
-					}
-					contexts[blockIndex] = makeBlockResponse.Ctx
-					// log.Print(makeBlockResponse.Ctx)
-					makeBlock = true
-					lastOffset = makeBlockResponse.Offset
-				} else {
-					makeBlockResponse, err = up.Bput(contexts[blockIndex], lastOffset, leftChunk, uploadToken, key)
-					if nil != err {
-						log.Errorf("cannot make block file %v: %v", localFilename, err)
-						return nil, err
-					}
-					contexts[blockIndex] = makeBlockResponse.Ctx
-					lastOffset = makeBlockResponse.Offset
-				}
-				blockSizeLeft -= bputSize
+			//
+
+			contexts[blockIndex], err = up.uploadSingleBlock(blockIndex, maxBputSize, innerChunkSize, localFilename, lastOffset, uploadToken, key)
+			if err != nil {
+				log.Errorf("error while upload %v", err)
+				return nil, errors.New("upload terminated")
 			}
+			lastOffset += innerChunkSize
 		}
 	}
 
@@ -343,4 +320,61 @@ func (up *SliceUpload) UploadFile(localFilename string, uploadToken string, key 
 		return nil, err
 	}
 	return response, nil
+}
+
+// UploadFile Upload
+func (up *SliceUpload) uploadSingleBlock(blockIndex int64, maxBputSize int64, innerChunkSize int64, filePath string, fileOffset int64, uploadToken string, key string) (string, error) {
+	f, err := os.Open(filePath)
+	finalCtx := ""
+	defer f.Close()
+	if err != nil {
+		log.Errorf("cannot open file %v: %v", filePath, err)
+		return finalCtx, err
+	}
+
+	blockSizeLeft := innerChunkSize
+	makeBlock := false
+	var lastOffset int64
+	f.Seek(fileOffset, 0)
+	for blockSizeLeft > 0 {
+		if atomic.LoadInt32(up.stopFlag) > 0 {
+			return finalCtx, errors.New("upload terminated")
+		}
+		bputSize := maxBputSize
+		if bputSize > blockSizeLeft {
+			bputSize = blockSizeLeft
+		}
+		leftChunk := make([]byte, bputSize)
+		n, err := f.Read(leftChunk)
+		if nil != err {
+			log.Errorf("cannot read chunk %v: %v", filePath, err)
+			return finalCtx, err
+		}
+		if bputSize != int64(n) {
+			err = errors.New("Read size < request size")
+			log.Errorf("cannot stat file (size check failed) %v: %v", filePath, err)
+			return finalCtx, err
+		}
+		if !makeBlock {
+			makeBlockResponse, err := up.MakeBlock(innerChunkSize, blockIndex, leftChunk, uploadToken, key)
+			if nil != err {
+				log.Errorf("cannot make block file %v [block:%v]: %v", filePath, blockIndex, err)
+				return finalCtx, err
+			}
+			finalCtx = makeBlockResponse.Ctx
+			// log.Print(makeBlockResponse.Ctx)
+			makeBlock = true
+			lastOffset = makeBlockResponse.Offset
+		} else {
+			makeBlockResponse, err := up.Bput(finalCtx, lastOffset, leftChunk, uploadToken, key)
+			if nil != err {
+				log.Errorf("cannot make block file %v: %v", filePath, err)
+				return finalCtx, err
+			}
+			finalCtx = makeBlockResponse.Ctx
+			lastOffset = makeBlockResponse.Offset
+		}
+		blockSizeLeft -= bputSize
+	}
+	return finalCtx, nil
 }
