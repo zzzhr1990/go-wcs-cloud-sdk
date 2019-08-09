@@ -234,6 +234,7 @@ func (up *SliceUpload) UploadFile(localFilename string, uploadToken string, key 
 	}
 
 	f, err := os.Open(localFilename)
+
 	if err != nil {
 		log.Errorf("cannot open file %v: %v", localFilename, err)
 		return nil, err
@@ -424,6 +425,7 @@ func (up *SliceUpload) UploadFile(localFilename string, uploadToken string, key 
 func (up *SliceUpload) uploadSingleBlock(info *blockInfo) {
 	f, err := os.Open(info.localFilename)
 	info.ctx = ""
+	lastCtx := ""
 	defer f.Close()
 	if err != nil {
 		log.Errorf("cannot open file %v: %v", info.localFilename, err)
@@ -464,20 +466,30 @@ func (up *SliceUpload) uploadSingleBlock(info *blockInfo) {
 				info.err = err
 				return
 			}
-			info.ctx = makeBlockResponse.Ctx
-			// log.Print(makeBlockResponse.Ctx)
+			lastCtx = makeBlockResponse.Ctx
 			makeBlock = true
 			lastOffset = makeBlockResponse.Offset
+			if len(lastCtx) == 0 {
+				log.Errorf("no ctx found from block, terminate")
+				info.err = errors.New("no ctx found from make block, terminiate")
+				return
+			}
 		} else {
-			makeBlockResponse, err := up.Bput(info.ctx, lastOffset, leftChunk, info.uploadToken, info.key)
+			if len(lastCtx) == 0 {
+				log.Errorf("no ctx found from block")
+				info.err = errors.New("no ctx found from make block, cannot bput")
+				return
+			}
+			makeBlockResponse, err := up.Bput(lastCtx, lastOffset, leftChunk, info.uploadToken, info.key)
 			if nil != err {
 				log.Errorf("cannot make block file %v: %v", info.localFilename, err)
 				info.err = err
 				return
 			}
-			info.ctx = makeBlockResponse.Ctx
+			lastCtx = makeBlockResponse.Ctx
 			lastOffset = makeBlockResponse.Offset
 		}
 		blockSizeLeft -= bputSize
 	}
+	info.ctx = lastCtx
 }
