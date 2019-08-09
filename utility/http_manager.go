@@ -125,7 +125,7 @@ func (httpManager *HTTPManager) DoRetry(request *CommonRequest, respEntity inter
 						// log.Warnf("file not found..%v", req.RequestURI)
 						return wcserror.ErrFileNotFound
 					}
-					log.Errorf("Response from API %v", string(responseBody))
+					log.Errorf("Response from API %v: %v", request.uri, string(responseBody))
 					err = errors.New("Req API err")
 				}
 				// resp ok, json
