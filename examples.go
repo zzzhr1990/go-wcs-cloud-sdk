@@ -74,7 +74,7 @@ func encodeSign(data []byte, sk string) (sign string) {
 // https://other.qiecdn.com/oriStore/ltGeGqA87FyZ9yYFDV83cYcwaMju?op=imageView2&mode=2&height=256&format=jpg
 
 func main6() {
-	auth := utility.NewAuth("8758804f90558e3a9222174725ee5d36ab9c7208", "5dbd1a40a8334d285261d78562640f4667ff90a9")
+	auth := utility.NewAuth("", "")
 
 	mng := bucket.NewBucketManager(auth, core.NewConfig(false, "upl", "qietv.mgr33.v1.wcsapi.com"))
 	// we‘d test 　m
