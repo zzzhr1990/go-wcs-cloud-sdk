@@ -103,12 +103,13 @@ func (httpManager *HTTPManager) DoRetry(request *CommonRequest, respEntity inter
 			log.Errorf("cannot create request")
 			return err
 		}
+		// log.Infof("Request URL: %v, method: %v, body: %v, stringBody: %v", request.uri, request.uri, len(request.data), request.stringBody)
 		resp, err := httpManager.GetTimeOutClient(request.GetTimeout()).Do(req)
 		if err == nil {
 			// nil do next
 			defer resp.Body.Close()
 			responseBody, err := ioutil.ReadAll(resp.Body)
-			// log.Infof("recv %v", string(responseBody))
+			// log.Infof("responseCode: %v recv %v", resp.StatusCode, string(responseBody))
 			if err == nil {
 				if resp.StatusCode == http.StatusOK {
 					err = json.Unmarshal(responseBody, respEntity)

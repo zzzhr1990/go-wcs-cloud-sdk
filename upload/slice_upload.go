@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -162,10 +163,7 @@ func (up *SliceUpload) Bput(context string, offset int64, chunk []byte, uploadTo
 	if err != nil {
 		return nil, err
 	}
-	//timeCost := time.Now().UnixNano() - startTime
-	//secCost := timeCost / int64(time.Millisecond) / 1000
-	//speed := len(chunk) / 1024 / int(secCost)
-	//log.Infof("bput %v kb/sec", speed)
+
 	return result, nil
 }
 
@@ -182,25 +180,13 @@ func (up *SliceUpload) MakeFile(size int64, key string, contexts []string, uploa
 	}
 
 	url := up.uploadPrefix + "/mkfile/" + strconv.FormatInt(size, 10)
-	/*
-		if nil != put_extra && nil != put_extra.Params {
-			for k, v := range put_extra.Params {
-				if strings.HasPrefix(k, "x:") && len(v) > 0 {
-					url += "/" + k + "/" + utility.UrlSafeEncodeString(v)
-				}
-			}
-		}
-	*/
 
-	ctx := ""
-	for _, c := range contexts {
-		ctx += "," + c
-	}
+	ctx := strings.Join(contexts, ",")
 	request, err := utility.CreateCommonRequest("POST", url)
 	if nil != err {
 		return nil, err
 	}
-	request.AddStringBody(ctx[1:])
+	request.AddStringBody(ctx)
 	request.SetTimeout(time.Duration(60) * time.Second)
 	utility.AddMime(request, "text/plain;charset=UTF-8")
 	request.AddHeader("UploadBatch", up.uploadBatch)
@@ -220,6 +206,7 @@ func (up *SliceUpload) MakeFile(size int64, key string, contexts []string, uploa
 	result := &MakeFileResult{}
 	err = up.httpManager.DoWithTokenAndRetry(request, uploadToken, result, 10)
 	if err != nil {
+		log.Errorf("cannot mkfile, filesize %v, ctx %v", size, ctx)
 		return nil, err
 	}
 	return result, nil
@@ -240,13 +227,15 @@ func (up *SliceUpload) UploadFile(localFilename string, uploadToken string, key 
 		return nil, err
 	}
 	defer f.Close()
-	fi, err := f.Stat()
+	fi, err := os.Stat(localFilename)
 	if err != nil {
 		log.Errorf("cannot stat file %v: %v", localFilename, err)
 		return nil, err
 	}
 
 	up.resizeFileCount(fi.Size())
+
+	// if fi.Size() ==
 
 	var innerblockSize int64
 	// 第一个分片不宜太大，因为可能遇到错误，上传太大是白费流量和时间！
@@ -283,12 +272,15 @@ func (up *SliceUpload) UploadFile(localFilename string, uploadToken string, key 
 		return nil, err
 	}
 
-	if makeBlockResponse.Crc32 == 0 {
-		log.Errorf("cannot make block, result is empty")
+	if makeBlockResponse.Crc32 == 0 && firstChunkSize > 0 {
+		log.Errorf("cannot make first block, result is empty, fsize %v", fi.Size())
 		return nil, errors.New("cannot make block, result is empty")
 	}
 
 	innerBlockCount := up.blockCount(fi.Size())
+	if innerBlockCount == 0 {
+		innerBlockCount = 1
+	}
 	contexts := make([]string, innerBlockCount)
 	contexts[0] = makeBlockResponse.Ctx
 
@@ -297,34 +289,18 @@ func (up *SliceUpload) UploadFile(localFilename string, uploadToken string, key 
 
 		blockSizeLeft := innerblockSize - firstChunkSize
 		lastOffset := firstChunkSize
-		for blockSizeLeft > 0 {
-			bputSize := maxBputSize
-			if bputSize > blockSizeLeft {
-				bputSize = blockSizeLeft
-			}
-			leftChunk := make([]byte, bputSize)
-			n, err = f.Read(leftChunk)
-			if nil != err {
-				log.Errorf("cannot read chunk %v: %v", localFilename, err)
-				return nil, err
-			}
-			if bputSize != int64(n) {
-				err = errors.New("Read size < request size")
-				log.Errorf("cannot stat file (size check failed) %v: %v", localFilename, err)
-				return nil, err
-			}
-			makeBlockResponse, err = up.Bput(contexts[0], lastOffset, leftChunk, uploadToken, key)
-			if nil != err {
-				log.Errorf("cannot make block file %v: %v", localFilename, err)
-				return nil, err
-			}
-			contexts[0] = makeBlockResponse.Ctx
-			lastOffset = makeBlockResponse.Offset
-			blockSizeLeft -= bputSize
-		}
+		blockInfoList := []*blockInfo{} //  Must have data
 
-		// 上传后续 block，每次都是一整块上传
-		blockInfoList := []*blockInfo{}
+		// we create first size
+
+		firstInfo := createBlockInfo(0, maxBputSize, blockSizeLeft, localFilename, lastOffset, uploadToken, key)
+		firstInfo.ctx = contexts[0]
+		blockInfoList = append(blockInfoList, firstInfo)
+		lastOffset += blockSizeLeft
+
+		// UPLOAD OTHER BLOCKS
+
+		//
 		for blockIndex := int64(1); blockIndex < innerBlockCount; blockIndex++ {
 			pos := innerblockSize * blockIndex
 			leftSize := fi.Size() - pos
@@ -335,22 +311,13 @@ func (up *SliceUpload) UploadFile(localFilename string, uploadToken string, key 
 				innerChunkSize = leftSize
 			}
 
-			//
-			// concurrent := 10
-
 			blockInfoList = append(blockInfoList, createBlockInfo(blockIndex, maxBputSize, innerChunkSize, localFilename, lastOffset, uploadToken, key))
 
-			// contexts[blockIndex], err = up.uploadSingleBlock(blockIndex, maxBputSize, innerChunkSize, localFilename, lastOffset, uploadToken, key)
-			// if err != nil {
-			//	log.Errorf("error while upload %v", err)
-			//	return nil, errors.New("upload terminated")
-			//}
 			lastOffset += innerChunkSize
 		}
 		ql := len(blockInfoList)
 		if ql > 0 {
-			// log.Infof("QQQQ_LX %v", ql)
-			concurrent := 8
+			concurrent := 1
 			if ql < concurrent {
 				concurrent = ql
 			}
@@ -387,7 +354,6 @@ func (up *SliceUpload) UploadFile(localFilename string, uploadToken string, key 
 					contexts[resBlockResult.blockIndex] = resBlockResult.ctx
 
 					rest := len(blockInfoList)
-					// log.Infof("file index %v up, file ctx %v", resBlockResult.blockIndex, resBlockResult.ctx)
 					if rest < 1 && queueLen < 1 {
 						close(infoChan)
 						break
@@ -413,6 +379,7 @@ func (up *SliceUpload) UploadFile(localFilename string, uploadToken string, key 
 	if atomic.LoadInt32(up.stopFlag) > 0 {
 		return nil, errors.New("upload terminated")
 	}
+
 	response, err := up.MakeFile(fi.Size(), key, contexts, uploadToken)
 	if nil != err {
 		log.Errorf("cannot make block file %v: %v", localFilename, err)
@@ -423,9 +390,17 @@ func (up *SliceUpload) UploadFile(localFilename string, uploadToken string, key 
 
 // UploadFile Upload
 func (up *SliceUpload) uploadSingleBlock(info *blockInfo) {
+	var lastOffset int64
 	f, err := os.Open(info.localFilename)
-	info.ctx = ""
+	makeBlock := false
 	lastCtx := ""
+	if len(info.ctx) > 0 {
+		lastCtx = info.ctx
+		info.ctx = ""
+		makeBlock = true
+		lastOffset = info.lastOffset
+	}
+
 	defer f.Close()
 	if err != nil {
 		log.Errorf("cannot open file %v: %v", info.localFilename, err)
@@ -434,8 +409,7 @@ func (up *SliceUpload) uploadSingleBlock(info *blockInfo) {
 	}
 
 	blockSizeLeft := info.innerChunkSize
-	makeBlock := false
-	var lastOffset int64
+
 	f.Seek(info.lastOffset, 0)
 	for blockSizeLeft > 0 {
 		if atomic.LoadInt32(up.stopFlag) > 0 {

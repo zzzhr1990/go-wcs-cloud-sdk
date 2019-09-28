@@ -1,17 +1,23 @@
 package main
 
 import (
-	"log"
+	log "github.com/sirupsen/logrus"
 
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"strconv"
 	"time"
+
+	"os"
+	"path/filepath"
+
+	"flag"
 
 	"github.com/zzzhr1990/go-wcs-cloud-sdk/bucket"
 	"github.com/zzzhr1990/go-wcs-cloud-sdk/core"
@@ -20,21 +26,82 @@ import (
 	"github.com/zzzhr1990/go-wcs-cloud-sdk/utility"
 )
 
+func walkfunc(path string, info os.FileInfo, err error) error {
+	//
+
+	if !info.IsDir() {
+		// log.Printf("check file %v", path)
+		err := main00(path, info)
+		if err != nil {
+			log.Fatalf("cannot upload %v", err)
+			panic("upload failed!!!")
+			// return err
+		}
+	}
+	return nil
+}
+
 func main() {
 	if false {
-		s := utility.ComputeEtag([]byte{})
-		log.Print(s)
-		r, _ := utility.ComputeFileEtag("test.h")
-		log.Print(r)
-		return
+
+		startPath := "/"
+		flag.StringVar(&startPath, "path", "/", "scan path")
+		flag.Parse()
+		log.Info(startPath)
+		ifo, err := os.Stat(startPath)
+		if err != nil {
+			log.Errorf("open file err %v", err)
+			return
+		}
+
+		if ifo.IsDir() {
+			log.Infof("walk file: %v", ifo.Name())
+			filepath.Walk(startPath, walkfunc)
+		} else {
+			main00(startPath, ifo)
+		}
+
+	} else {
+		ak := ""
+		sk := ""
+		policy := &entity.UploadPolicy{}
+		// current := time.Now()
+		policy.Deadline = strconv.FormatInt((time.Now().UnixNano()/int64(time.Millisecond))+1000*60*60*6, 10)
+		// key := "test/" + current.Format("2006-01-02") + "/" + strconv.FormatInt(1992, 10) + "/" + "Hellboy.2019.1080p.AMZN.WEBRip.DD5.1.x264-NTG.mkv"
+		key := "test/upload_test/" + "test.bin"
+		// key := "test/" + current.Format("2006-01-02") + "/" + strconv.FormatInt(1992, 10) + "/" + "Hellboy.2019.1080p.AMZN.WEBRip.DD5.1.x264-NTG.mkv"
+		// set scope
+		policy.Scope = "other-storage" + ":" + key
+		// Set overwrite
+		policy.Overwrite = 1
+		policy.Separate = "0"
+		// policy.CallbackURL = s.config.Wcs.CallbackURL
+		// Calc token
+		data, _ := json.Marshal(policy)
+		encodedData := base64.URLEncoding.EncodeToString(data)
+		token := ak + ":" + encodeSign([]byte(encodedData), sk) + ":" + encodedData
+
+		url := "https://upload-vod-v1.qiecdn.com"
+
+		log.Println(token)
+		log.Println(url)
+		filePath := "/Users/zzzhr/Downloads/6pan-v1.0.6-release.apk.td.cfg"
+		var ff int32
+		upl := upload.CreateNewSliceUpload(url, &ff)
+		res, _ := upl.UploadFile(filePath, token, "")
+		log.Println(res.Hash)
 	}
+}
+
+func main00(file string, info os.FileInfo) error {
 	ak := ""
 	sk := ""
-	file := "/Users/zzzhr/Desktop/91/link-interface-hyperlink-icon-2770-512x512.png"
 	policy := &entity.UploadPolicy{}
-	current := time.Now()
+	// current := time.Now()
 	policy.Deadline = strconv.FormatInt((time.Now().UnixNano()/int64(time.Millisecond))+1000*60*60*6, 10)
-	key := "test/" + current.Format("2006-01-02") + "/" + strconv.FormatInt(1992, 10) + "/" + "Hellboy.2019.1080p.AMZN.WEBRip.DD5.1.x264-NTG.mkv"
+	// key := "test/" + current.Format("2006-01-02") + "/" + strconv.FormatInt(1992, 10) + "/" + "Hellboy.2019.1080p.AMZN.WEBRip.DD5.1.x264-NTG.mkv"
+	key := "test/upload_test/" + "test.bin"
+	// key := "test/" + current.Format("2006-01-02") + "/" + strconv.FormatInt(1992, 10) + "/" + "Hellboy.2019.1080p.AMZN.WEBRip.DD5.1.x264-NTG.mkv"
 	// set scope
 	policy.Scope = "other-storage" + ":" + key
 	// Set overwrite
@@ -48,18 +115,49 @@ func main() {
 
 	url := "https://upload-vod-v1.qiecdn.com"
 	// prepare upload..
+
 	var xxp int32
+
 	upl := upload.CreateNewSliceUpload(url, &xxp)
+	start := time.Now()
 	res, err := upl.UploadFile(file, token, "")
+	// read file size
+
 	if err != nil {
 		log.Printf("error up, %v", err)
-		return
+		return err
 	}
-	log.Printf("remote hash: %v", res.Hash)
+
+	elapsed := time.Since(start)
+	speed := info.Size()
+	sec := int64(elapsed.Seconds())
+	if sec > 0 {
+		speed = speed / sec
+	}
+	log.Printf("%v took %v, speed: %v/sec", info.Name(), sec, byteCountDecimal(speed))
+
+	// log.Printf("remote hash: %v", res.Hash)
 	// log.Println(res.Hash)
 	etag, _ := utility.ComputeFileEtag(file)
-	log.Printf("ori hash: %v", etag)
+	if res.Hash != etag {
+		log.Fatalf("ori hash: %v, remote hash: %v", etag, res.Hash)
+	}
+
 	// prepare to post...
+	return nil
+}
+
+func byteCountDecimal(b int64) string {
+	const unit = 1000
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
+	}
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "kMGTPE"[exp])
 }
 
 func encodeSign(data []byte, sk string) (sign string) {
