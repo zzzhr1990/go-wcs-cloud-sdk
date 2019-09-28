@@ -53,7 +53,7 @@ func createBlockInfo(blockIndex int64, maxBputSize int64, innerChunkSize int64, 
 
 const (
 	minBlockBits        = 22
-	maxBlockCount       = 2
+	maxBlockCount       = 256
 	maxBlockSize        = 64 * 1024 * 1024
 	maxBputSize   int64 = 8 * 1024 * 1024
 )
@@ -214,8 +214,11 @@ func (up *SliceUpload) MakeFile(size int64, key string, contexts []string, uploa
 }
 
 // UploadFile Upload
-func (up *SliceUpload) UploadFile(localFilename string, uploadToken string, key string) (*MakeFileResult, error) {
+func (up *SliceUpload) UploadFile(localFilename string, uploadToken string, key string, maxConcurrent int32) (*MakeFileResult, error) {
 
+	if 1 < maxConcurrent {
+		maxConcurrent = 1
+	}
 	if 0 == len(localFilename) {
 		return nil, errors.New("localFilename is empty")
 	}
@@ -317,7 +320,7 @@ func (up *SliceUpload) UploadFile(localFilename string, uploadToken string, key 
 		}
 		ql := len(blockInfoList)
 		if ql > 0 {
-			concurrent := 1
+			concurrent := int(maxConcurrent)
 			if ql < concurrent {
 				concurrent = ql
 			}

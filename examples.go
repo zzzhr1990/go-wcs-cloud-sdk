@@ -88,7 +88,7 @@ func main() {
 		filePath := "/Users/zzzhr/Downloads/6pan-v1.0.6-release.apk.td.cfg"
 		var ff int32
 		upl := upload.CreateNewSliceUpload(url, &ff)
-		res, _ := upl.UploadFile(filePath, token, "")
+		res, _ := upl.UploadFile(filePath, token, "", 1)
 		log.Println(res.Hash)
 	}
 }
@@ -120,7 +120,7 @@ func main00(file string, info os.FileInfo) error {
 
 	upl := upload.CreateNewSliceUpload(url, &xxp)
 	start := time.Now()
-	res, err := upl.UploadFile(file, token, "")
+	res, err := upl.UploadFile(file, token, "", 1)
 	// read file size
 
 	if err != nil {
