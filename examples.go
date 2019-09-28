@@ -114,6 +114,7 @@ func main00(file string, info os.FileInfo) error {
 	token := ak + ":" + encodeSign([]byte(encodedData), sk) + ":" + encodedData
 
 	url := "https://upload-vod-v1.qiecdn.com"
+
 	// prepare upload..
 
 	var xxp int32
