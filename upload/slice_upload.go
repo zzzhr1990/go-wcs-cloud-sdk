@@ -53,7 +53,7 @@ func createBlockInfo(blockIndex int64, maxBputSize int64, innerChunkSize int64, 
 
 const (
 	minBlockBits        = 22
-	maxBlockCount       = 256
+	maxBlockCount       = 8192
 	maxBlockSize        = 64 * 1024 * 1024
 	maxBputSize   int64 = 8 * 1024 * 1024
 )
