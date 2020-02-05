@@ -19,6 +19,8 @@ import (
 
 	"flag"
 
+	"runtime"
+
 	"github.com/zzzhr1990/go-wcs-cloud-sdk/bucket"
 	"github.com/zzzhr1990/go-wcs-cloud-sdk/core"
 	"github.com/zzzhr1990/go-wcs-cloud-sdk/entity"
@@ -62,38 +64,20 @@ func main() {
 		}
 
 	} else {
-		ak := ""
-		sk := ""
-		policy := &entity.UploadPolicy{}
-		// current := time.Now()
-		policy.Deadline = strconv.FormatInt((time.Now().UnixNano()/int64(time.Millisecond))+1000*60*60*6, 10)
-		// key := "test/" + current.Format("2006-01-02") + "/" + strconv.FormatInt(1992, 10) + "/" + "Hellboy.2019.1080p.AMZN.WEBRip.DD5.1.x264-NTG.mkv"
-		key := "test/upload_test/" + "test.bin"
-		// key := "test/" + current.Format("2006-01-02") + "/" + strconv.FormatInt(1992, 10) + "/" + "Hellboy.2019.1080p.AMZN.WEBRip.DD5.1.x264-NTG.mkv"
-		// set scope
-		policy.Scope = "other-storage" + ":" + key
-		// Set overwrite
-		policy.Overwrite = 1
-		policy.Separate = "0"
-		// policy.CallbackURL = s.config.Wcs.CallbackURL
-		// Calc token
-		data, _ := json.Marshal(policy)
-		encodedData := base64.URLEncoding.EncodeToString(data)
-		token := ak + ":" + encodeSign([]byte(encodedData), sk) + ":" + encodedData
+		runtime.GOMAXPROCS(48)
+		startPath := "test.bin"
+		ifo, err := os.Stat(startPath)
+		if err != nil {
+			log.Fatalf("Fail: %v", err)
+		} else {
+			main00(startPath, ifo)
+		}
 
-		url := "https://upload-vod-v1.qiecdn.com"
-
-		log.Println(token)
-		log.Println(url)
-		filePath := "/Users/zzzhr/Downloads/6pan-v1.0.6-release.apk.td.cfg"
-		var ff int32
-		upl := upload.CreateNewSliceUpload(url, &ff)
-		res, _ := upl.UploadFile(filePath, token, "", 1)
-		log.Println(res.Hash)
 	}
 }
 
 func main00(file string, info os.FileInfo) error {
+	runtime.GOMAXPROCS(48)
 	ak := ""
 	sk := ""
 	policy := &entity.UploadPolicy{}
@@ -121,7 +105,7 @@ func main00(file string, info os.FileInfo) error {
 
 	upl := upload.CreateNewSliceUpload(url, &xxp)
 	start := time.Now()
-	res, err := upl.UploadFile(file, token, "", 1)
+	res, err := upl.UploadFile(file, token, "", 48)
 	// read file size
 
 	if err != nil {
