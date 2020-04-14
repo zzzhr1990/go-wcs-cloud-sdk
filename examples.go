@@ -65,7 +65,7 @@ func main() {
 
 	} else {
 		runtime.GOMAXPROCS(48)
-		startPath := "test.bin"
+		startPath := "C:\\Users\\zzzhr\\Downloads\\庆余年\\庆余年.Qing.Yu.Nian.2019.E03.WEB-DL.1080p.H264.AAC-PTHome.mp4"
 		ifo, err := os.Stat(startPath)
 		if err != nil {
 			log.Fatalf("Fail: %v", err)
@@ -78,24 +78,27 @@ func main() {
 
 func main00(file string, info os.FileInfo) error {
 	runtime.GOMAXPROCS(48)
-	ak := ""
-	sk := ""
-	policy := &entity.UploadPolicy{}
-	// current := time.Now()
-	policy.Deadline = strconv.FormatInt((time.Now().UnixNano()/int64(time.Millisecond))+1000*60*60*6, 10)
-	// key := "test/" + current.Format("2006-01-02") + "/" + strconv.FormatInt(1992, 10) + "/" + "Hellboy.2019.1080p.AMZN.WEBRip.DD5.1.x264-NTG.mkv"
-	key := "test/upload_test/" + "test.bin"
-	// key := "test/" + current.Format("2006-01-02") + "/" + strconv.FormatInt(1992, 10) + "/" + "Hellboy.2019.1080p.AMZN.WEBRip.DD5.1.x264-NTG.mkv"
-	// set scope
-	policy.Scope = "other-storage" + ":" + key
-	// Set overwrite
-	policy.Overwrite = 1
-	policy.Separate = "0"
-	// policy.CallbackURL = s.config.Wcs.CallbackURL
-	// Calc token
-	data, _ := json.Marshal(policy)
-	encodedData := base64.URLEncoding.EncodeToString(data)
-	token := ak + ":" + encodeSign([]byte(encodedData), sk) + ":" + encodedData
+	token := "8758804f90558e3a9222174725ee5d36ab9c7208:MjkzNjE1MGUzNzRlNDdiZDUyNDVmODE1OTk0ZjJmNTg3ODA5ZjI5Mg==:eyJzY29wZSI6Im90aGVyLXN0b3JhZ2U6dXNlci11cGxvYWQvdjMvMjAyMC0wNC0xNC81XzE1ODY4NDYzNDU3NDM1ODk4ODAtYjU1YmIyNjkzZjQ5ODcwZTMzZTY1ZDFhODRlOWViNDUudG1wX2lwIiwiZGVhZGxpbmUiOiIxNTg2OTMyNzQ1NzQzIiwib3ZlcndyaXRlIjoxLCJjYWxsYmFja1VybCI6Imh0dHBzOi8vYXBpLjZwYW4uY24vaW50ZXJhbC92My9jYWxsYmFjay91c2VyZmlsZS93Y3MvdXBsb2FkIiwiY2FsbGJhY2tCb2R5Ijoic2l6ZT0kKGZzaXplKSQkJCFRWlwiU1BMSVQkISQkaGFzaD0kKGhhc2gpJCQkIVFaXCJTUExJVCQhJCRrZXk9JChrZXkpJCQkIVFaXCJTUExJVCQhJCRtaW1lVHlwZT0kKG1pbWVUeXBlKSQkJCFRWlwiU1BMSVQkISQkaXA9JChpcCkkJCQhUVpcIlNQTElUJCEkJGJ1Y2tldD0kKGJ1Y2tldCkkJCQhUVpcIlNQTElUJCEkJHVwbG9hZEZpbGVOYW1lPSQoZm5hbWUpJCQkIVFaXCJTUExJVCQhJCRvcD0wJCQkIVFaXCJTUExJVCQhJCQkJCQhUVpcIlNQTElUJCEkJHJlcT17XCJ1c2VyX2lkZW50aXR5XCI6NSxcInBhdGhcIjpcIi_luobkvZnlubRcIixcIm5hbWVcIjpcIuW6huS9meW5tC5RaW5nLll1Lk5pYW4uMjAxOS5FMDMuV0VCLURMLjEwODBwLkgyNjQuQUFDLVBUSG9tZS5tcDRcIn0iLCJzZXBhcmF0ZSI6IjAifQ=="
+	if false {
+		ak := ""
+		sk := ""
+		policy := &entity.UploadPolicy{}
+		// current := time.Now()
+		policy.Deadline = strconv.FormatInt((time.Now().UnixNano()/int64(time.Millisecond))+1000*60*60*6, 10)
+		// key := "test/" + current.Format("2006-01-02") + "/" + strconv.FormatInt(1992, 10) + "/" + "Hellboy.2019.1080p.AMZN.WEBRip.DD5.1.x264-NTG.mkv"
+		key := "test/upload_test/" + "test.bin"
+		// key := "test/" + current.Format("2006-01-02") + "/" + strconv.FormatInt(1992, 10) + "/" + "Hellboy.2019.1080p.AMZN.WEBRip.DD5.1.x264-NTG.mkv"
+		// set scope
+		policy.Scope = "other-storage" + ":" + key
+		// Set overwrite
+		policy.Overwrite = 1
+		policy.Separate = "0"
+		// policy.CallbackURL = s.config.Wcs.CallbackURL
+		// Calc token
+		data, _ := json.Marshal(policy)
+		encodedData := base64.URLEncoding.EncodeToString(data)
+		token = ak + ":" + encodeSign([]byte(encodedData), sk) + ":" + encodedData
+	}
 
 	url := "https://upload-vod-v1.qiecdn.com"
 
@@ -107,7 +110,7 @@ func main00(file string, info os.FileInfo) error {
 	start := time.Now()
 	res, err := upl.UploadFile(file, token, "", 48)
 	// read file size
-
+	log.Printf("Response message %v", res.Message)
 	if err != nil {
 		log.Printf("error up, %v", err)
 		return err

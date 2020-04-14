@@ -28,8 +28,9 @@ type MakeBlockBputResult struct {
 
 // MakeFileResult make
 type MakeFileResult struct {
-	Code    int    `json:"code,omitempty"`
-	Message string `json:"message,omitempty"`
-	Hash    string `json:"hash,omitempty"`
-	Key     string `json:"key,omitempty"`
+	Code     int    `json:"code,omitempty"`
+	Message  string `json:"message,omitempty"`
+	Hash     string `json:"hash,omitempty"`
+	Response string `json:"response,omitempty"`
+	Key      string `json:"key,omitempty"`
 }

@@ -109,7 +109,8 @@ func (httpManager *HTTPManager) DoRetry(request *CommonRequest, respEntity inter
 			// nil do next
 			defer resp.Body.Close()
 			responseBody, err := ioutil.ReadAll(resp.Body)
-			// log.Infof("responseCode: %v recv %v", resp.StatusCode, string(responseBody))
+			//log.Infof("responseCode: %v recv %v", resp.StatusCode, string(responseBody))
+
 			if err == nil {
 				if resp.StatusCode == http.StatusOK {
 					err = json.Unmarshal(responseBody, respEntity)
