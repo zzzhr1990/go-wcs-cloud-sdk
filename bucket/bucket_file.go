@@ -94,15 +94,27 @@ func (manager *Manager) MoveWithRetry(src string, dst string, retry int) (*core.
 
 // List 删除文件（delete）
 // https://wcs.chinanetcenter.com/document/API/ResourceManage/delete
-func (manager *Manager) List(bucket string, limit int64, prefix string, marker string, retry int) (*core.ListResponse, error) {
+func (manager *Manager) List(bucket string, limit int64, prefix string, mode int, marker string, retry int) (*core.ListResponse, error) {
 	// return manager.DeleteWithRetry(bucket, key, 10)
-	url := manager.config.GetManageURLPrefix() + "/list?bucket=" +
-		bucket +
-		"&limit=" +
-		strconv.FormatInt(limit, 10) +
-		"&prefix=" +
-		utility.URLSafeEncodeString(prefix) +
-		"&marker=" + marker
+
+	var queryStr string
+	queryStr += "bucket=" + bucket + "&"
+	if limit >= 1 && limit <= 1000 {
+		queryStr += "limit=" + strconv.FormatInt(limit, 10) + "&"
+	}
+
+	if len(prefix) > 0 {
+		queryStr += "prefix=" + utility.URLSafeEncodeString(prefix) + "&"
+	}
+
+	if 0 == mode || 1 == mode {
+		queryStr += "mode=" + strconv.Itoa(mode) + "&"
+	}
+
+	if len(marker) > 0 {
+		queryStr += "marker=" + marker
+	}
+	url := manager.config.GetManageURLPrefix() + "/list?" + queryStr
 	// &mode=<mode>
 	request, err := utility.CreateGetRequest(url)
 	// fmt.Println(url)
@@ -124,7 +136,7 @@ func (manager *Manager) DeleteAll(bucket string, prefix string) (bool, error) {
 
 	marker := ""
 	for {
-		lr, err := manager.List(bucket, 1000, prefix, marker, 10)
+		lr, err := manager.List(bucket, 1000, prefix, 0, marker, 10)
 		if err != nil {
 			return false, err
 		}
