@@ -105,48 +105,40 @@ func (httpManager *HTTPManager) DoRetry(request *CommonRequest, respEntity inter
 		}
 		// log.Infof("Request URL: %v, method: %v, body: %v, stringBody: %v", request.uri, request.uri, len(request.data), request.stringBody)
 		resp, err := httpManager.GetTimeOutClient(request.GetTimeout()).Do(req)
+		if err != nil {
+			log.Errorf("error when process: %v", err)
+			return err
+		}
+		defer resp.Body.Close()
+
+		responseBody, err := ioutil.ReadAll(resp.Body)
+		//log.Infof("responseCode: %v recv %v", resp.StatusCode, string(responseBody))
+
 		if err == nil {
-			// nil do next
-			defer resp.Body.Close()
-			responseBody, err := ioutil.ReadAll(resp.Body)
-			//log.Infof("responseCode: %v recv %v", resp.StatusCode, string(responseBody))
-
-			if err == nil {
-				if resp.StatusCode == http.StatusOK {
-					err = json.Unmarshal(responseBody, respEntity)
-					if err == nil {
-						return nil
-					}
-					log.Errorf("Http Api request Unmarshal error %v, body: %v", err, string(responseBody))
-				} else {
-					if resp.StatusCode == 406 {
-						log.Warnf("File exists..%v", string(responseBody))
-						return wcserror.ErrFileExists
-					} // ErrFileNotFound
-					if resp.StatusCode == 404 {
-						// log.Warnf("file not found..%v", req.RequestURI)
-						return wcserror.ErrFileNotFound
-					}
-					log.Errorf("Response from API %v: %v", request.uri, string(responseBody))
-					err = errors.New("Req API err")
+			if resp.StatusCode == http.StatusOK {
+				err = json.Unmarshal(responseBody, respEntity)
+				if err == nil {
+					return nil
 				}
-				// resp ok, json
-
+				log.Errorf("Http Api request Unmarshal error %v, body: %v", err, string(responseBody))
 			} else {
-				log.Errorf("Request API failed,ER_FAILED_READ, %v", err)
+				if resp.StatusCode == 406 {
+					log.Warnf("File exists..%v", string(responseBody))
+					return wcserror.ErrFileExists
+				} // ErrFileNotFound
+				if resp.StatusCode == 404 {
+					// log.Warnf("file not found..%v", req.RequestURI)
+					return wcserror.ErrFileNotFound
+				}
+				log.Errorf("Response from API %v: %v", request.uri, string(responseBody))
+				err = errors.New("Req API err")
 			}
+			// resp ok, json
 
 		} else {
-			log.Errorf("Request API failed, %v", err)
+			log.Errorf("Request API failed,ER_FAILED_READ, %v", err)
+			return err
 		}
-		retry--
-		if retry < 1 {
-			log.Info("request api give up")
-			return errors.New("give up error")
-		}
-		//
-		time.Sleep(time.Duration(2) * time.Second)
-		log.Infof("retrying api %v, try time left: %v", request.uri, retry)
 	}
 }
 

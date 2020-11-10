@@ -26,9 +26,10 @@ type CommonRequest struct {
 // CreateCommonRequest cra
 func CreateCommonRequest(method string, uri string) (*CommonRequest, error) {
 	return &CommonRequest{
-		uri:    uri,
-		method: method,
-		header: make(map[string]string),
+		uri:     uri,
+		method:  method,
+		header:  make(map[string]string),
+		timeOut: time.Minute,
 	}, nil
 }
 

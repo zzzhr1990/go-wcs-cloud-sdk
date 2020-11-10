@@ -43,7 +43,7 @@ func walkfunc(path string, info os.FileInfo, err error) error {
 	return nil
 }
 
-func main() {
+func main6() {
 	if false {
 
 		startPath := "/"
@@ -159,7 +159,7 @@ func encodeSign(data []byte, sk string) (sign string) {
 
 // https://other.qiecdn.com/oriStore/ltGeGqA87FyZ9yYFDV83cYcwaMju?op=imageView2&mode=2&height=256&format=jpg
 
-func main6() {
+func main() {
 	auth := utility.NewAuth("", "")
 
 	mng := bucket.NewBucketManager(auth, core.NewConfig(false, "upl", "qietv.mgr33.v1.wcsapi.com"))
@@ -167,6 +167,7 @@ func main6() {
 	detectType := "porn"
 	flag := 0
 	add := "https://other.qiecdn.com/oriStore/ltGeGqA87FyZ9yYFDV83cYcwaMju?op=imageView2&mode=2&height=256&format=jpg"
+	mng.Stat("", "")
 	response, err := mng.ImageDetect(add, "other-storage", detectType)
 	if err != nil {
 		log.Printf("cannot detect img %v: %v", add, err)
