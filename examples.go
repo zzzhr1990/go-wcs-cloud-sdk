@@ -1,14 +1,13 @@
 package main
 
 import (
-	log "github.com/sirupsen/logrus"
-
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 
 	"strconv"
@@ -35,7 +34,7 @@ func walkfunc(path string, info os.FileInfo, err error) error {
 		// log.Printf("check file %v", path)
 		err := main00(path, info)
 		if err != nil {
-			log.Fatalf("cannot upload %v", err)
+			log.Printf("cannot upload %v", err)
 			panic("upload failed!!!")
 			// return err
 		}
@@ -49,15 +48,15 @@ func main6() {
 		startPath := "/"
 		flag.StringVar(&startPath, "path", "/", "scan path")
 		flag.Parse()
-		log.Info(startPath)
+		log.Printf(startPath)
 		ifo, err := os.Stat(startPath)
 		if err != nil {
-			log.Errorf("open file err %v", err)
+			log.Printf("open file err %v", err)
 			return
 		}
 
 		if ifo.IsDir() {
-			log.Infof("walk file: %v", ifo.Name())
+			log.Printf("walk file: %v", ifo.Name())
 			filepath.Walk(startPath, walkfunc)
 		} else {
 			main00(startPath, ifo)

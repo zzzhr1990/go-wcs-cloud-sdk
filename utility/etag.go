@@ -54,7 +54,7 @@ func ComputeFileEtag(filename string) (etag string, err error) {
 
 	fsize := fi.Size()
 	innerBlockCount := blockCount(fsize)
-	tag := []byte{}
+	var tag []byte
 
 	if innerBlockCount <= 1 { // file size <= 4M
 		tag, err = computeSha1([]byte{0x16}, f)

@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	// "github.com/zzzhr1990/go-wcs-cloud-sdk/utility"
 	"github.com/zzzhr1990/go-wcs-cloud-sdk/wcserror"
 )
@@ -21,12 +20,11 @@ type HTTPManager struct {
 }
 
 // 这个值会在 Config 里设定
-var userAgent = "WCS-GO-SDK-0.0.0.0"
+// var userAgent = "WCS-GO-SDK-0.0.0.0"
 
 //SetUserAgent set
 func SetUserAgent(ua string) {
-	userAgent = ua
-	return
+	// userAgent = ua
 }
 
 //CreateGetRequest cgr
@@ -86,7 +84,6 @@ func (httpManager *HTTPManager) GetTimeOutClient(time time.Duration) (client *ht
 func (httpManager *HTTPManager) Do(request *CommonRequest) (*http.Response, error) {
 	req, err := request.CreateRequest()
 	if err != nil {
-		log.Errorf("cannot create request")
 		return nil, err
 	}
 	if request.GetTimeout() > 0 {
@@ -100,13 +97,11 @@ func (httpManager *HTTPManager) DoRetry(request *CommonRequest, respEntity inter
 	for {
 		req, err := request.CreateRequest()
 		if err != nil {
-			log.Errorf("cannot create request")
 			return err
 		}
 		// log.Infof("Request URL: %v, method: %v, body: %v, stringBody: %v", request.uri, request.uri, len(request.data), request.stringBody)
 		resp, err := httpManager.GetTimeOutClient(request.GetTimeout()).Do(req)
 		if err != nil {
-			log.Errorf("error when process: %v", err)
 			return err
 		}
 		defer resp.Body.Close()
@@ -120,23 +115,19 @@ func (httpManager *HTTPManager) DoRetry(request *CommonRequest, respEntity inter
 				if err == nil {
 					return nil
 				}
-				log.Errorf("Http Api request Unmarshal error %v, body: %v", err, string(responseBody))
 			} else {
 				if resp.StatusCode == 406 {
-					log.Warnf("File exists..%v", string(responseBody))
 					return wcserror.ErrFileExists
 				} // ErrFileNotFound
 				if resp.StatusCode == 404 {
 					// log.Warnf("file not found..%v", req.RequestURI)
 					return wcserror.ErrFileNotFound
 				}
-				log.Errorf("Response from API %v: %v", request.uri, string(responseBody))
-				err = errors.New("Req API err")
+				return errors.New("req API err")
 			}
 			// resp ok, json
 
 		} else {
-			log.Errorf("Request API failed,ER_FAILED_READ, %v", err)
 			return err
 		}
 	}

@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 	// "github.com/zzzhr1990/go-wcs-cloud-sdk/utility"
 )
 
@@ -47,7 +45,6 @@ func (req *CommonRequest) CreateRequest() (*http.Request, error) {
 	request, err := http.NewRequest(req.method, req.uri, reader)
 
 	if err != nil {
-		log.Errorf("create request failed, %v:%v", req.method, req.uri)
 		return nil, err
 	}
 
